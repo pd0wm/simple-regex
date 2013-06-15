@@ -5,7 +5,7 @@
 #include "regex.h"
 
 /*
-	This function generates a NFA state diagram for the given regex
+	This function generates a NFA graph for the given regex
 */
 NFA_State *regex_generate_NFA_from_regex(char *regex) {
 	// Print regex
@@ -24,11 +24,75 @@ NFA_State *regex_generate_NFA_from_regex(char *regex) {
 
 		// Check if cur_char is not a special character
 		if ( isalnum( (int)(*cur_char) ) ) {
-			// Normal charater, create new state and link
-			NFA_State *next_state = (NFA_State*) malloc( sizeof(NFA_State) );
-			regex_link_NFA_states(cur_state,next_state,*cur_char);
-		}
+			// Normal charater check next character
+			char *next_char = cur_char + 1;
+			if (isalnum( (int)(*next_char) ) ){
+				// Next character is a normal character
+				// So just create a next state
+				//    a
+				// O------>O
+				NFA_State *next_state = (NFA_State*) malloc( sizeof(NFA_State) );
+				regex_link_NFA_states(cur_state,next_state,*cur_char);
 
+				// Move state pointer to next state
+				cur_state = next_state;
+			}else if(*next_char == '*'){
+				// Next character is a *
+				// This matches zero or more instances of the current character
+				// Create the following pattern
+				//             E
+				//         <--------
+				//        /         \
+				//   --->O---------->O----_>
+				//E /    1    a      2      \  E
+				// O------------------------>0
+				//             E             3
+
+				// Allocate memory for new states
+				NFA_State *next_state_1 = (NFA_State*) malloc( sizeof(NFA_State) );
+				NFA_State *next_state_2 = (NFA_State*) malloc( sizeof(NFA_State) );
+				NFA_State *next_state_3 = (NFA_State*) malloc( sizeof(NFA_State) );
+
+				// Link states according to above pattern
+				regex_link_NFA_states(cur_state,next_state_1,EPSILON);
+				regex_link_NFA_states(cur_state,next_state_3,EPSILON);
+				regex_link_NFA_states(next_state_1,next_state_2,*cur_char);
+				regex_link_NFA_states(next_state_2,next_state_1,EPSILON);
+				regex_link_NFA_states(next_state_2,next_state_3,EPSILON);
+
+				// Move state pointer to next state
+				cur_state = next_state_3;
+
+				//Skip next character
+				cur_char++;
+			}else if(*next_char == '+'){
+				// Next character is a +
+				// This matches one or more instances of the current character
+				// Create the following pattern
+				//                    E
+				//                <--------
+				//       E       /         \     E
+				// O----------->O---------->O-------->O
+				// c            1     a     2         3
+
+				// Allocate memory for new states
+				NFA_State *next_state_1 = (NFA_State*) malloc( sizeof(NFA_State) );
+				NFA_State *next_state_2 = (NFA_State*) malloc( sizeof(NFA_State) );
+				NFA_State *next_state_3 = (NFA_State*) malloc( sizeof(NFA_State) );
+
+				// Link states according to above pattern
+				regex_link_NFA_states(cur_state,next_state_1,EPSILON);
+				regex_link_NFA_states(next_state_1,next_state_2,*cur_char);
+				regex_link_NFA_states(next_state_2,next_state_1,EPSILON);
+				regex_link_NFA_states(next_state_2,next_state_3,EPSILON);
+
+				// Move state pointer to next state
+				cur_state = next_state_3;
+
+				//Skip next character
+				cur_char++;
+			}
+		}
 		cur_char++;
 	}
 
