@@ -1,5 +1,6 @@
 # Object files
 *.o
+*.exe
 
 # Libraries
 *.lib
@@ -15,3 +16,6 @@
 *.exe
 *.out
 *.app
+
+bin/
+libs/
