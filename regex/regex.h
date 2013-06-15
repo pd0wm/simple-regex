@@ -1,6 +1,8 @@
 #ifndef REGEX_H
 #define REGEX_H
 
+const char epsilon = '\0';
+
 typedef struct NFA_Transition NFA_Transition;
 typedef struct NFA_TransitionListItem NFA_TransitionListItem;
 typedef struct NFA_State NFA_State;

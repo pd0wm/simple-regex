@@ -35,9 +35,12 @@ NFA_State *regex_generate_NFA_from_regex(char *regex) {
 	return start_state;
 }
 
-
+/*
+	Link two states by creating a transition, and adding this transistion to the
+	outbound transistion list of the outbound state.
+*/
 void regex_link_NFA_states(NFA_State *A, NFA_State *B, char condition){
-	// Create transition
+	// Create transition and populate member variables
 	NFA_Transition *transition = (NFA_Transition*) malloc( sizeof(NFA_Transition));
 	transition->condition = condition;
 	transition->from = A;
@@ -49,6 +52,9 @@ void regex_link_NFA_states(NFA_State *A, NFA_State *B, char condition){
 	regex_add_NFA_transition_to_list(A,list_item);
 }
 
+/*
+	Add a transition to the linked list of transitions
+*/
 void regex_add_NFA_transition_to_list(NFA_State *state, NFA_TransitionListItem * transition){
 	// Check if list exists
 	if (state->transitions == NULL){
