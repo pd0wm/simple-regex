@@ -18,10 +18,10 @@ struct NFA_TransitionListItem{
 
 
 struct NFA_State{
-	int id;
-	NFA_TransitionListItem transition;
+	NFA_TransitionListItem * transitions;
 };
 
 NFA_State *regex_generate_NFA_from_regex(char * regex);
-
+void regex_link_NFA_states(NFA_State *A, NFA_State *B, char condition);
+void regex_add_NFA_transition_to_list(NFA_State *state, NFA_TransitionListItem * transition);
 #endif
