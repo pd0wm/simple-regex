@@ -3,9 +3,6 @@
 #include "regex.h"
 
 int main(void){
-	printf("Hello, world!\n");
-
-	foo();
-
+	regex_generate_NFA_from_regex("abc");
 	return 0;
 }

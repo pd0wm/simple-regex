@@ -9,6 +9,7 @@ program_INCLUDE_DIRS := ../libs/include
 program_LIBRARY_DIRS := ../libs/
 program_LIBRARIES := regex
 
+program_LIBRARIES_PATHS = $(patsubst %,../libs/lib%.a, $(program_LIBRARIES))
 
 CPPFLAGS += -Wall -ggdb $(foreach includedir,$(program_INCLUDE_DIRS),-I$(includedir))
 # Static libraries
@@ -27,7 +28,7 @@ clean:
 	@- $(RM) *.d
 	@- $(RM) $(program_NAME)
 
-$(program_NAME): $(program_OBJS)
+$(program_NAME): $(program_OBJS) $(program_LIBRARIES_PATHS)
 	$(CC) $(program_OBJS) -o $(program_NAME) -static $(LDFLAGS)
 	@- mkdir -p ../bin/
 	cp -u $(program_NAME) ../bin/$(program_NAME)

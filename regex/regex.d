@@ -10,7 +10,9 @@ regex.o: regex.c /usr/include/stdio.h /usr/include/_ansi.h \
   /usr/include/machine/types.h /usr/include/cygwin/types.h \
   /usr/include/stdint.h /usr/include/endian.h /usr/include/bits/endian.h \
   /usr/include/byteswap.h /usr/include/sys/sysmacros.h \
-  /usr/include/sys/stdio.h /usr/include/sys/cdefs.h regex.h
+  /usr/include/sys/stdio.h /usr/include/sys/cdefs.h /usr/include/stdlib.h \
+  /usr/include/machine/stdlib.h /usr/include/alloca.h \
+  /usr/include/cygwin/stdlib.h /usr/include/cygwin/wait.h regex.h
 regex.c /usr/include/stdio.h /usr/include/_ansi.h :
   /usr/include/newlib.h /usr/include/sys/config.h :
   /usr/include/machine/ieeefp.h /usr/include/sys/features.h :
@@ -23,4 +25,6 @@ regex.c /usr/include/stdio.h /usr/include/_ansi.h :
   /usr/include/machine/types.h /usr/include/cygwin/types.h :
   /usr/include/stdint.h /usr/include/endian.h /usr/include/bits/endian.h :
   /usr/include/byteswap.h /usr/include/sys/sysmacros.h :
-  /usr/include/sys/stdio.h /usr/include/sys/cdefs.h regex.h :
+  /usr/include/sys/stdio.h /usr/include/sys/cdefs.h /usr/include/stdlib.h :
+  /usr/include/machine/stdlib.h /usr/include/alloca.h :
+  /usr/include/cygwin/stdlib.h /usr/include/cygwin/wait.h regex.h :
