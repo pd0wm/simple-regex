@@ -27,7 +27,7 @@ NFA_State *regex_generate_NFA_from_regex(char *regex) {
 		if ( isalnum( (int)(*cur_char) ) ) {
 			// Normal charater check next character
 			char *next_char = cur_char + 1;
-			if (isalnum( (int)(*next_char) ) || *next_char == '(' || *next_char == ')'){
+			if (isalnum( (int)(*next_char) ) || *next_char == '(' || *next_char == ')' || *next_char == '\0'){
 				// Next character is a normal character or group start or group end
 				// So just create a next state
 				//    a
@@ -135,7 +135,6 @@ NFA_State *regex_generate_NFA_from_regex(char *regex) {
 				// Link states according to above pattern
 				regex_link_NFA_states(cur_state,group_begin,EPSILON);
 				regex_link_NFA_states(cur_state,next_state_3,EPSILON);
-				regex_link_NFA_states(group_begin,group_end,*cur_char);
 				regex_link_NFA_states(group_end,group_begin,EPSILON);
 				regex_link_NFA_states(group_end,next_state_3,EPSILON);
 
@@ -159,7 +158,6 @@ NFA_State *regex_generate_NFA_from_regex(char *regex) {
 
 					// Link states according to above pattern
 					regex_link_NFA_states(cur_state,group_begin,EPSILON);
-					regex_link_NFA_states(group_begin,group_end,*cur_char);
 					regex_link_NFA_states(group_end,group_begin,EPSILON);
 					regex_link_NFA_states(group_end,next_state_3,EPSILON);
 
@@ -182,7 +180,10 @@ NFA_State *regex_generate_NFA_from_regex(char *regex) {
 	outbound transistion list of the outbound state.
 */
 void regex_link_NFA_states(NFA_State *A, NFA_State *B, char condition){
-	printf("Linking with condition %c\n", condition);
+	if (condition == '\0')
+		printf("Linking with condition EPSILON\n");
+	else
+		printf("Linking with condition %c\n", condition);
 	// Create transition and populate member variables
 	NFA_Transition *transition = (NFA_Transition*) malloc( sizeof(NFA_Transition));
 	transition->condition = condition;
