@@ -8,8 +8,70 @@
 FA_Graph regex_generate_DFA_from_NFA(FA_Graph NFA){
 	FA_State * NFA_begin = NFA.begin;
 
+
+	FA_StateListItem *work_list = malloc( sizeof(FA_StateListItem));
+	FA_StateListItem *DFA_states_list = NULL;
 	FA_State *start_state = regex_create_empty_FA_state();
 	start_state->NFA_states = regex_epsilon_closure(NFA_begin);
+
+	start_state->original_NFA_state = NFA_begin;
+
+
+
+	regex_state_list_push(&DFA_states_list,start_state);
+
+	// Add first state to work list
+	work_list->state = start_state;
+	work_list->next = NULL;
+
+	while (work_list != NULL){
+
+		printf("Work list size: %d\n", regex_state_list_size(work_list));
+		FA_StateListItem *state_item = regex_state_list_pop(&work_list);
+
+		FA_State *state = state_item->state;
+
+		// For each corresponding NFA state we have to check for transition
+		FA_StateListItem *nfa_state_item = state->NFA_states;
+
+		while(nfa_state_item){
+			FA_State *NFA_state =  nfa_state_item->state;
+			printf("Working on: %d\n", (int)NFA_state);
+
+			// Now for each non epsilon transition, we must create a dfa state
+			FA_TransitionListItem *transition_item = NFA_state->transitions;
+			while (transition_item){
+				FA_Transition *transition = transition_item->transition;
+
+
+				if (transition->condition != EPSILON){
+					printf("Transition %d\n", (int)transition);
+
+					FA_State *new_state = regex_find_DFA_state_by_original_FA_state(DFA_states_list,transition->to);
+					// Check if state is already in list
+					if (new_state){
+						printf("In list\n");
+					}else{
+						printf("Not in list: %d\n", (int)transition->to);
+						new_state = regex_create_empty_FA_state();
+						new_state->original_NFA_state = transition->to;
+						regex_state_list_push(&DFA_states_list, new_state);
+						regex_state_list_push(&work_list, new_state);
+
+						new_state->NFA_states = regex_epsilon_closure(transition->to);
+
+					}
+
+					// Link current state to new state
+					regex_link_NFA_states(state,new_state,transition->condition);
+				}
+				transition_item = transition_item->next;
+
+			}
+			nfa_state_item = nfa_state_item->next;
+		}
+	}
+
 
 
 	FA_Graph graph;
@@ -31,7 +93,7 @@ FA_StateListItem *regex_epsilon_closure(FA_State *state){
 			FA_State *to = transition_list_pointer->transition->to;
 			if (!regex_FA_state_is_in_list(closure_list,to)){
 				FA_StateListItem *recursive_closure_list = regex_epsilon_closure(to);
-				regex_state_list_append(closure_list,recursive_closure_list);
+				regex_state_list_append(&closure_list,recursive_closure_list);
 			}
 		}
 		transition_list_pointer = transition_list_pointer->next;
@@ -40,26 +102,48 @@ FA_StateListItem *regex_epsilon_closure(FA_State *state){
 	return closure_list;
 }
 
+int regex_state_list_size(FA_StateListItem *list){
+	int i = 0;
+	FA_StateListItem *item = list;
+	while(item){
+		i++;
+		item = item->next;
+	}
+	return i;
+}
+
 int regex_FA_state_is_in_list(FA_StateListItem *list, FA_State *state){
 	FA_StateListItem *item = list;
-	while(item->next != NULL){
+	while(item){
 		if (item->state == state)
 			return 1;
 		item = item->next;
 	}
-
-
 	return 0;
 }
 
-void regex_state_list_append(FA_StateListItem *list1, FA_StateListItem *list2){
 
+FA_State *regex_find_DFA_state_by_original_FA_state(FA_StateListItem *list, FA_State *state){
+	// Print state list
+	FA_StateListItem *item = list;
+	while(item){
+		if (item->state->original_NFA_state == state){
+			return item->state;
+		}
+		item = item->next;
+	}
+	return NULL;
+}
+
+
+
+void regex_state_list_append(FA_StateListItem **list1, FA_StateListItem *list2){
 	// Check if list exists
-	if (list1 == NULL){
-		list1 = list2;
+	if (*list1 == NULL){
+		*list1 = list2;
 	}else{
 		// Find last
-		FA_StateListItem *item = list1;
+		FA_StateListItem *item = *list1;
 		while(item->next != NULL)
 			item = item->next;
 		// Add item to list
@@ -67,17 +151,38 @@ void regex_state_list_append(FA_StateListItem *list1, FA_StateListItem *list2){
 	}
 }
 
-void regex_state_list_push(FA_StateListItem *list, FA_State *state){
-	FA_StateListItem * new_state = malloc( sizeof(FA_StateListItem));
+
+FA_StateListItem *regex_state_list_pop(FA_StateListItem **list){
+	// Find last
+	FA_StateListItem *item = *list;
+	FA_StateListItem *prev = NULL;
+
+	while(item->next != NULL){
+		prev = item;
+		item = item->next;
+	}
+
+	// Remove last item from list
+	if (prev)
+		prev->next = NULL;
+	// If we pop last item from list, set it to NULL
+	else
+		*list = NULL;
+
+	return item;
+}
+void regex_state_list_push(FA_StateListItem **list, FA_State *state){
+
+	FA_StateListItem *new_state = malloc( sizeof(FA_StateListItem));
 	new_state->state = state;
 	new_state->next = NULL;
 
 	// Check if list exists
-	if (list == NULL){
-		list = new_state;
+	if (*list == NULL){
+		*list = new_state;
 	}else{
 		// Find last
-		FA_StateListItem *item = list;
+		FA_StateListItem *item = *list;
 		while(item->next != NULL)
 			item = item->next;
 		// Add item to list
@@ -228,12 +333,15 @@ FA_Graph regex_generate_NFA_from_regex(char *regex) {
 
 
 FA_State *regex_create_empty_FA_state(void){
-	printf("Created FA state\n");
+
 
 	FA_State *next_state = (FA_State*) malloc( sizeof(FA_State) );
 	next_state->transitions = NULL;
 	next_state->NFA_states = NULL;
+	next_state->original_NFA_state = NULL;
 	next_state->end = 0;
+
+	printf("Created FA state: %d\n", (int)next_state);
 
 	return next_state;
 }
@@ -244,15 +352,16 @@ FA_State *regex_create_empty_FA_state(void){
 	outbound transistion list of the outbound state.
 */
 void regex_link_NFA_states(FA_State *A, FA_State *B, char condition){
-	if (condition == '\0')
-		printf("Linking with condition EPSILON\n");
-	else
-		printf("Linking with condition %c\n", condition);
 	// Create transition and populate member variables
 	FA_Transition *transition = (FA_Transition*) malloc( sizeof(FA_Transition));
 	transition->condition = condition;
 	transition->from = A;
 	transition->to = B;
+
+	if (condition == '\0')
+		printf("Linking %d -> %d with condition EPSILON: %d\n", (int) A,(int) B,(int) transition);
+	else
+		printf("Linking %d -> %d with condition %c: %d\n", (int) A,(int) B, condition,(int) transition);
 
 	// Create list item for A
 	FA_TransitionListItem * list_item = (FA_TransitionListItem*) malloc( sizeof(FA_TransitionListItem));
