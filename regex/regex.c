@@ -8,7 +8,7 @@
 /*
 	This function generates a NFA graph for the given regex
 */
-NFA_State *regex_generate_NFA_from_regex(char *regex) {
+NFA_Graph regex_generate_NFA_from_regex(char *regex) {
 	// Print regex
 	printf("Regex: %s\n", regex);
 
@@ -27,7 +27,7 @@ NFA_State *regex_generate_NFA_from_regex(char *regex) {
 		if ( isalnum( (int)(*cur_char) ) ) {
 			// Normal charater check next character
 			char *next_char = cur_char + 1;
-			if (isalnum( (int)(*next_char) ) || *next_char == '(' || *next_char == ')' || *next_char == '\0'){
+			if (*next_char != '*' && *next_char != '+'){
 				// Next character is a normal character or group start or group end
 				// So just create a next state
 				//    a
@@ -39,8 +39,14 @@ NFA_State *regex_generate_NFA_from_regex(char *regex) {
 				cur_state = next_state;
 
 				// If it is a group end, we should return
-				if (*next_char == ')')
-					return start_state;
+				if (*next_char == ')'){
+					NFA_Graph graph;
+					graph.begin = start_state;
+					graph.end = cur_state;
+
+					printf("returning after )\n");
+					return graph;
+				}
 			}else{
 				if(*next_char == '*'){
 					// Next character is a *
@@ -79,8 +85,9 @@ NFA_State *regex_generate_NFA_from_regex(char *regex) {
 			cur_char += strlen(substr) + 1;
 
 			// Get begin and end of group
-			NFA_State *group_begin = regex_generate_NFA_from_regex(substr);
-			NFA_State *group_end = regex_get_end_of_NFA(group_begin);
+			NFA_Graph group_graph = regex_generate_NFA_from_regex(substr);
+			NFA_State *group_begin = group_graph.begin;
+			NFA_State *group_end = group_graph.end;
 
 			// Free memory for substr
 			free(substr);
@@ -103,12 +110,42 @@ NFA_State *regex_generate_NFA_from_regex(char *regex) {
 					//Skip next character
 					cur_char++;
 				}
+		} else if (*cur_char == '|'){
+			// Next character is a |
+			// This means we have to implement an or
 
+			// Parse rest of string
+			NFA_Graph group_graph = regex_generate_NFA_from_regex(cur_char + 1);
+			NFA_State *group_2_begin = group_graph.begin;
+			NFA_State *group_2_end = group_graph.end;
+
+			// create new start of NFA
+			NFA_State *nfa_begin = (NFA_State*) malloc( sizeof(NFA_State) );
+
+			cur_state = regex_link_or(nfa_begin,start_state,cur_state,group_2_begin,group_2_end);
+
+			// Begin of NFA is the begin of the or
+			start_state = nfa_begin;
+
+			// And we're done, the recursion handled the rest of the string
+
+			NFA_Graph graph;
+			graph.begin = start_state;
+			graph.end = cur_state;
+			printf("returning after |\n");
+			return graph;
 		}
+
 		cur_char++;
 	}
+	// We reached the end of the string, return
 
-	return start_state;
+	NFA_Graph graph;
+	graph.begin = start_state;
+	graph.end = cur_state;
+	printf("returning after \\0\n");
+
+	return graph;
 }
 
 /*
@@ -150,38 +187,6 @@ void regex_add_NFA_transition_to_list(NFA_State *state, NFA_TransitionListItem *
 	}
 }
 
-NFA_State *regex_get_end_of_NFA(NFA_State *begin){
-	NFA_State *cur = begin;
-
-	while (cur->transitions != NULL){
-		printf("Following: %c\n", cur->transitions->transition->condition);
-		cur = cur->transitions->transition->to;
-	}
-	return cur;
-}
-
-
-NFA_State *regex_link_one_or_more(NFA_State *cur_state, NFA_State *group_begin, NFA_State *group_end){
-	/*
-	Create the following pattern
-	                    E
-	                <--------
-	       E       /         \     E
-	 O----------->O---------->O-------->O
-	 c            B     a     E         3
-	*/
-
-	// Allocate memory for new states
-	NFA_State *next_state_3 = (NFA_State*) malloc( sizeof(NFA_State) );
-
-	// Link states according to above pattern
-	regex_link_NFA_states(cur_state,group_begin,EPSILON);
-	regex_link_NFA_states(group_end,group_begin,EPSILON);
-	regex_link_NFA_states(group_end,next_state_3,EPSILON);
-
-	// Move state pointer to next state
-	return next_state_3;
-}
 
 
 NFA_State *regex_link_zero_or_more(NFA_State *cur_state, NFA_State *group_begin, NFA_State *group_end){
@@ -197,16 +202,66 @@ NFA_State *regex_link_zero_or_more(NFA_State *cur_state, NFA_State *group_begin,
 	*/
 
 	// Allocate memory for new states
-	NFA_State *next_state_3 = (NFA_State*) malloc( sizeof(NFA_State) );
+	NFA_State *next_state = (NFA_State*) malloc( sizeof(NFA_State) );
 
 	// Link states according to above pattern
 	regex_link_NFA_states(cur_state,group_begin,EPSILON);
-	regex_link_NFA_states(cur_state,next_state_3,EPSILON);
+	regex_link_NFA_states(cur_state,next_state,EPSILON);
 	regex_link_NFA_states(group_end,group_begin,EPSILON);
-	regex_link_NFA_states(group_end,next_state_3,EPSILON);
+	regex_link_NFA_states(group_end,next_state,EPSILON);
 
-	return next_state_3;
+	return next_state;
 }
+
+NFA_State *regex_link_one_or_more(NFA_State *cur_state, NFA_State *group_begin, NFA_State *group_end){
+	/*
+	Create the following pattern
+	                    E
+	                <--------
+	       E       /         \     E
+	 O----------->O---------->O-------->O
+	 c            B     a     E         3
+	*/
+
+	// Allocate memory for new states
+	NFA_State *next_state = (NFA_State*) malloc( sizeof(NFA_State) );
+
+	// Link states according to above pattern
+	regex_link_NFA_states(cur_state,group_begin,EPSILON);
+	regex_link_NFA_states(group_end,group_begin,EPSILON);
+	regex_link_NFA_states(group_end,next_state,EPSILON);
+
+	// Move state pointer to next state
+	return next_state;
+}
+
+NFA_State *regex_link_or(NFA_State *cur_state, NFA_State *group_1_begin, NFA_State *group_1_end, NFA_State *group_2_begin, NFA_State *group_2_end){
+	/*
+	Create the following pattern
+	        a
+	   O-------->O
+	E /           \  E
+	 /             \
+	O               O
+	 \             /
+	E \           / E
+	   O-------->O
+	        b
+	*/
+
+	// Allocate memory for new states
+	NFA_State *next_state = (NFA_State*) malloc( sizeof(NFA_State) );
+
+	// Link states according to above pattern
+	regex_link_NFA_states(cur_state,group_1_begin,EPSILON);
+	regex_link_NFA_states(cur_state,group_2_begin,EPSILON);
+	regex_link_NFA_states(group_1_end,next_state,EPSILON);
+	regex_link_NFA_states(group_2_end,next_state,EPSILON);
+
+	// Move state pointer to next state
+	return next_state;
+}
+
 
 char *regex_get_group(char *begin){
 	// We found a group, create substring for group
