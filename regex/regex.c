@@ -162,14 +162,14 @@ NFA_State *regex_get_end_of_NFA(NFA_State *begin){
 
 
 NFA_State *regex_link_one_or_more(NFA_State *cur_state, NFA_State *group_begin, NFA_State *group_end){
-	// Next character is a +
-	// This matches one or more instances of the current character
-	// Create the following pattern
-	//                    E
-	//                <--------
-	//       E       /         \     E
-	// O----------->O---------->O-------->O
-	// c            B     a     E         3
+	/*
+	Create the following pattern
+	                    E
+	                <--------
+	       E       /         \     E
+	 O----------->O---------->O-------->O
+	 c            B     a     E         3
+	*/
 
 	// Allocate memory for new states
 	NFA_State *next_state_3 = (NFA_State*) malloc( sizeof(NFA_State) );
@@ -185,16 +185,16 @@ NFA_State *regex_link_one_or_more(NFA_State *cur_state, NFA_State *group_begin, 
 
 
 NFA_State *regex_link_zero_or_more(NFA_State *cur_state, NFA_State *group_begin, NFA_State *group_end){
-	// Next character is a *
-	// This matches zero or more instances of the current character
-	// Create the following pattern
-	//             E
-	//         <--------
-	//        /         \
-	//   --->O---------->O----_>
-	//E /    B    a      E      \  E
-	// O------------------------>0
-	//             E             3
+	/*
+	Create the following pattern
+	             E
+	         <--------
+	        /         \
+	   --->O---------->O----_>
+	E /    B    a      E      \  E
+	 O------------------------>0
+	             E             3
+	*/
 
 	// Allocate memory for new states
 	NFA_State *next_state_3 = (NFA_State*) malloc( sizeof(NFA_State) );
