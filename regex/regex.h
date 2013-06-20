@@ -3,37 +3,53 @@
 
 #define EPSILON '\0'
 
-typedef struct NFA_Transition NFA_Transition;
-typedef struct NFA_TransitionListItem NFA_TransitionListItem;
-typedef struct NFA_State NFA_State;
-typedef struct NFA_Graph NFA_Graph;
+typedef struct FA_Transition FA_Transition;
+typedef struct FA_TransitionListItem FA_TransitionListItem;
+typedef struct FA_StateListItem FA_StateListItem;
+typedef struct FA_State FA_State;
+typedef struct FA_Graph FA_Graph;
 
-struct NFA_Transition{
+struct FA_Transition{
 	char condition;
-	NFA_State *from;
-	NFA_State *to;
+	FA_State *from;
+	FA_State *to;
 };
 
-struct NFA_TransitionListItem{
-	NFA_Transition *transition;
-	NFA_TransitionListItem *next;
+struct FA_TransitionListItem{
+	FA_Transition *transition;
+	FA_TransitionListItem *next;
+};
+
+struct FA_State{
+	FA_StateListItem *NFA_states;
+	FA_TransitionListItem *transitions;
+	int end;
+};
+
+struct FA_StateListItem{
+	FA_State *state;
+	FA_StateListItem *next;
+};
+
+struct FA_Graph{
+	FA_State *begin;
+	FA_State *end;
 };
 
 
-struct NFA_State{
-	NFA_TransitionListItem *transitions;
-};
 
-struct NFA_Graph{
-	NFA_State *begin;
-	NFA_State *end;
-};
-
-NFA_Graph regex_generate_NFA_from_regex(char * regex);
-void regex_link_NFA_states(NFA_State *A, NFA_State *B, char condition);
-void regex_add_NFA_transition_to_list(NFA_State *state, NFA_TransitionListItem * transition);
+FA_Graph regex_generate_DFA_from_NFA(FA_Graph NFA);
+FA_StateListItem *regex_epsilon_closure(FA_State *state);
+int regex_FA_state_is_in_list(FA_StateListItem *list, FA_State *state);
+void regex_state_list_append(FA_StateListItem *list1, FA_StateListItem *list2);
+void regex_state_list_push(FA_StateListItem *list, FA_State * state);
+FA_State *regex_create_empty_FA_state(void);
+FA_Graph regex_generate_NFA_from_regex(char * regex);
+void regex_link_NFA_states(FA_State *A, FA_State *B, char condition);
+void regex_add_NFA_transition_to_list(FA_State *state, FA_TransitionListItem * transition);
 char *regex_get_group(char *begin);
-NFA_State *regex_link_zero_or_more(NFA_State *cur_state, NFA_State *group_begin, NFA_State *group_end);
-NFA_State *regex_link_one_or_more(NFA_State *cur_state, NFA_State *group_begin, NFA_State *group_end);
-NFA_State *regex_link_or(NFA_State *cur_state, NFA_State *group_1_begin, NFA_State *group_1_end, NFA_State *group_2_begin, NFA_State *group_2_end);
+FA_State *regex_link_zero_or_more(FA_State *cur_state, FA_State *group_begin, FA_State *group_end);
+FA_State *regex_link_one_or_more(FA_State *cur_state, FA_State *group_begin, FA_State *group_end);
+FA_State *regex_link_or(FA_State *cur_state, FA_State *group_1_begin, FA_State *group_1_end, FA_State *group_2_begin, FA_State *group_2_end);
+
 #endif
