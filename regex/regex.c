@@ -6,17 +6,15 @@
 #include "regex.h"
 
 FA_Graph regex_generate_DFA_from_NFA(FA_Graph NFA){
-	FA_State * NFA_begin = NFA.begin;
-
-
-	FA_StateListItem *work_list = malloc( sizeof(FA_StateListItem));
+	FA_State *NFA_begin = NFA.begin;
+	FA_Graph graph;
+	FA_StateListItem *work_list = (FA_StateListItem *) malloc( sizeof(FA_StateListItem));
 	FA_StateListItem *DFA_states_list = NULL;
 	FA_State *start_state = regex_create_empty_FA_state();
+
 	start_state->NFA_states = regex_epsilon_closure(NFA_begin);
 
 	start_state->original_NFA_state = NFA_begin;
-
-
 
 	regex_state_list_push(&DFA_states_list,start_state);
 
@@ -25,29 +23,34 @@ FA_Graph regex_generate_DFA_from_NFA(FA_Graph NFA){
 	work_list->next = NULL;
 
 	while (work_list != NULL){
+		FA_StateListItem *state_item;
+		FA_State *state;
+		FA_StateListItem *nfa_state_item;
 
 		printf("Work list size: %d\n", regex_state_list_size(work_list));
-		FA_StateListItem *state_item = regex_state_list_pop(&work_list);
+		state_item = regex_state_list_pop(&work_list);
 
-		FA_State *state = state_item->state;
+		state = state_item->state;
 
 		// For each corresponding NFA state we have to check for transition
-		FA_StateListItem *nfa_state_item = state->NFA_states;
+		nfa_state_item = state->NFA_states;
 
 		while(nfa_state_item){
+			FA_TransitionListItem *transition_item;
 			FA_State *NFA_state =  nfa_state_item->state;
 			printf("Working on: %d\n", (int)NFA_state);
 
 			// Now for each non epsilon transition, we must create a dfa state
-			FA_TransitionListItem *transition_item = NFA_state->transitions;
+			transition_item = NFA_state->transitions;
 			while (transition_item){
 				FA_Transition *transition = transition_item->transition;
 
 
 				if (transition->condition != EPSILON){
+					FA_State *new_state;
 					printf("Transition %d\n", (int)transition);
 
-					FA_State *new_state = regex_find_DFA_state_by_original_FA_state(DFA_states_list,transition->to);
+					new_state = regex_find_DFA_state_by_original_FA_state(DFA_states_list,transition->to);
 					// Check if state is already in list
 					if (new_state){
 						printf("In list\n");
@@ -72,22 +75,20 @@ FA_Graph regex_generate_DFA_from_NFA(FA_Graph NFA){
 		}
 	}
 
-
-
-	FA_Graph graph;
 	graph.begin = start_state;
 	graph.end = start_state;
 	return graph;
 }
 
 FA_StateListItem *regex_epsilon_closure(FA_State *state){
+	FA_TransitionListItem *transition_list_pointer;
 	// Create empty list and add current state
-	FA_StateListItem *closure_list = malloc( sizeof(FA_StateListItem));
+	FA_StateListItem *closure_list = (FA_StateListItem *) malloc( sizeof(FA_StateListItem));
 	closure_list->state = state;
 	closure_list->next = NULL;
 
 	// Call function recursively on all epsilon transitions
-	FA_TransitionListItem *transition_list_pointer = state->transitions;
+	transition_list_pointer = state->transitions;
 	while (transition_list_pointer != NULL){
 		if (transition_list_pointer->transition->condition == EPSILON){
 			FA_State *to = transition_list_pointer->transition->to;
@@ -173,7 +174,7 @@ FA_StateListItem *regex_state_list_pop(FA_StateListItem **list){
 }
 void regex_state_list_push(FA_StateListItem **list, FA_State *state){
 
-	FA_StateListItem *new_state = malloc( sizeof(FA_StateListItem));
+	FA_StateListItem *new_state = (FA_StateListItem *) malloc( sizeof(FA_StateListItem));
 	new_state->state = state;
 	new_state->next = NULL;
 
@@ -190,19 +191,21 @@ void regex_state_list_push(FA_StateListItem **list, FA_State *state){
 	}
 }
 /*
-	This function generates a NFA graph for the given regex
+This function generates a NFA graph for the given regex
 */
 FA_Graph regex_generate_NFA_from_regex(char *regex) {
+	FA_Graph graph;
+	FA_State *start_state,*cur_state;
+	char *cur_char;
 	// Print regex
 	printf("Regex: %s\n", regex);
 
 	// Alocate memory for first state
-	FA_State *start_state = regex_create_empty_FA_state();
-
-	FA_State *cur_state = start_state;
+	start_state = regex_create_empty_FA_state();
+	cur_state = start_state;
 
 	// Process each character of the regex
-	char *cur_char = regex;
+	cur_char = regex;
 	while (*cur_char != '\0') {
 		printf("%c\n", *cur_char);
 
@@ -261,6 +264,10 @@ FA_Graph regex_generate_NFA_from_regex(char *regex) {
 			}
 
 		} else if (*cur_char == '('){
+			FA_Graph group_graph;
+			FA_State *group_begin,*group_end;
+			char *next_char;
+
 			// Get substring for group and call this function recursively on the substring
 			char *substr = regex_get_group(cur_char);
 
@@ -268,15 +275,15 @@ FA_Graph regex_generate_NFA_from_regex(char *regex) {
 			cur_char += strlen(substr) + 1;
 
 			// Get begin and end of group
-			FA_Graph group_graph = regex_generate_NFA_from_regex(substr);
-			FA_State *group_begin = group_graph.begin;
-			FA_State *group_end = group_graph.end;
+			group_graph = regex_generate_NFA_from_regex(substr);
+			group_begin = group_graph.begin;
+			group_end = group_graph.end;
 
 			// Free memory for substr
 			free(substr);
 			substr = NULL;
 
-			char *next_char = cur_char + 1;
+			next_char = cur_char + 1;
 
 			if(*next_char == '*'){
 				// Next character is a *
@@ -286,14 +293,15 @@ FA_Graph regex_generate_NFA_from_regex(char *regex) {
 				//Skip next character
 				cur_char++;
 			}else if(*next_char == '+'){
-					// Next character is a +
-					// This matches one or more instances of the current character
-					cur_state = regex_link_one_or_more(cur_state, group_begin, group_end);
+				// Next character is a +
+				// This matches one or more instances of the current character
+				cur_state = regex_link_one_or_more(cur_state, group_begin, group_end);
 
-					//Skip next character
-					cur_char++;
-				}
+				//Skip next character
+				cur_char++;
+			}
 		} else if (*cur_char == '|'){
+			FA_Graph graph;
 			// Next character is a |
 			// This means we have to implement an or
 
@@ -310,9 +318,7 @@ FA_Graph regex_generate_NFA_from_regex(char *regex) {
 			// Begin of NFA is the begin of the or
 			start_state = nfa_begin;
 
-			// And we're done, the recursion handled the rest of the string
-
-			FA_Graph graph;
+			// And we're done, the recursion handled the rest of the string	
 			graph.begin = start_state;
 			graph.end = cur_state;
 			printf("returning after |\n");
@@ -322,8 +328,6 @@ FA_Graph regex_generate_NFA_from_regex(char *regex) {
 		cur_char++;
 	}
 	// We reached the end of the string, return
-
-	FA_Graph graph;
 	graph.begin = start_state;
 	graph.end = cur_state;
 	printf("returning after \\0\n");
@@ -348,10 +352,11 @@ FA_State *regex_create_empty_FA_state(void){
 
 
 /*
-	Link two states by creating a transition, and adding this transistion to the
-	outbound transistion list of the outbound state.
+Link two states by creating a transition, and adding this transistion to the
+outbound transistion list of the outbound state.
 */
 void regex_link_NFA_states(FA_State *A, FA_State *B, char condition){
+	FA_TransitionListItem *list_item;
 	// Create transition and populate member variables
 	FA_Transition *transition = (FA_Transition*) malloc( sizeof(FA_Transition));
 	transition->condition = condition;
@@ -364,14 +369,15 @@ void regex_link_NFA_states(FA_State *A, FA_State *B, char condition){
 		printf("Linking %d -> %d with condition %c: %d\n", (int) A,(int) B, condition,(int) transition);
 
 	// Create list item for A
-	FA_TransitionListItem * list_item = (FA_TransitionListItem*) malloc( sizeof(FA_TransitionListItem));
+	list_item = (FA_TransitionListItem*) malloc( sizeof(FA_TransitionListItem));
 	list_item->transition = transition;
+	list_item->next = NULL;
 	// Add to outbound transition list
 	regex_add_NFA_transition_to_list(A,list_item);
 }
 
 /*
-	Add a transition to the linked list of transitions
+Add a transition to the linked list of transitions
 */
 void regex_add_NFA_transition_to_list(FA_State *state, FA_TransitionListItem * transition){
 	// Check if list exists
@@ -392,13 +398,13 @@ void regex_add_NFA_transition_to_list(FA_State *state, FA_TransitionListItem * t
 FA_State *regex_link_zero_or_more(FA_State *cur_state, FA_State *group_begin, FA_State *group_end){
 	/*
 	Create the following pattern
-	             E
-	         <--------
-	        /         \
-	   --->O---------->O----_>
+	E
+	<--------
+	/         \
+	--->O---------->O----_>
 	E /    B    a      E      \  E
-	 O------------------------>0
-	             E             3
+	O------------------------>0
+	E             3
 	*/
 
 	// Allocate memory for new states
@@ -416,11 +422,11 @@ FA_State *regex_link_zero_or_more(FA_State *cur_state, FA_State *group_begin, FA
 FA_State *regex_link_one_or_more(FA_State *cur_state, FA_State *group_begin, FA_State *group_end){
 	/*
 	Create the following pattern
-	                    E
-	                <--------
-	       E       /         \     E
-	 O----------->O---------->O-------->O
-	 c            B     a     E         3
+	E
+	<--------
+	E       /         \     E
+	O----------->O---------->O-------->O
+	c            B     a     E         3
 	*/
 
 	// Allocate memory for new states
@@ -438,15 +444,15 @@ FA_State *regex_link_one_or_more(FA_State *cur_state, FA_State *group_begin, FA_
 FA_State *regex_link_or(FA_State *cur_state, FA_State *group_1_begin, FA_State *group_1_end, FA_State *group_2_begin, FA_State *group_2_end){
 	/*
 	Create the following pattern
-	        a
-	   O-------->O
+	a
+	O-------->O
 	E /           \  E
-	 /             \
+	/             \
 	O               O
-	 \             /
+	\             /
 	E \           / E
-	   O-------->O
-	        b
+	O-------->O
+	b
 	*/
 
 	// Allocate memory for new states
@@ -464,6 +470,8 @@ FA_State *regex_link_or(FA_State *cur_state, FA_State *group_1_begin, FA_State *
 
 
 char *regex_get_group(char *begin){
+	size_t substr_length;
+	char *substr, *copy_char, *substr_copy_char;
 	// We found a group, create substring for group
 	// First we need to find the matching parentheses
 	int parentheses_level = 1;
@@ -480,12 +488,12 @@ char *regex_get_group(char *begin){
 	}
 
 	// Calculate the length of the substring and allocate memory
-	size_t substr_length = peek - begin;
-	char *substr = malloc(substr_length * sizeof(char));
+	substr_length = peek - begin;
+	substr = (char *) malloc(substr_length * sizeof(char));
 
 	// Copy substring to buffer
-	char *copy_char = begin + 1;
-	char *substr_copy_char = substr;
+	copy_char = begin + 1;
+	substr_copy_char = substr;
 	while (copy_char != peek){
 		*substr_copy_char = *copy_char;
 		substr_copy_char++;
