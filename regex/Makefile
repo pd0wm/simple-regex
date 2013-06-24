@@ -18,7 +18,7 @@ lib$(library_NAME).a: $(library_OBJS)
 	@- mkdir -p ../libs/
 	@- cp -u lib$(library_NAME).a ../libs/lib$(library_NAME).a
 	@- mkdir -p ../libs/include/
-	@- cp -u $(library_H_FILES) ../libs/include/$(library_H_FILES)
+	@- cp -u *.h ../libs/include/
 
 %.o : %.c
 	$(CC) -M $(CPPFLAGS) -o $*.P $<
