@@ -30,6 +30,7 @@ struct FA_State{
 struct FA_StateListItem{
 	FA_State *state;
 	FA_StateListItem *next;
+	char *match_start;
 };
 
 struct FA_Graph{
@@ -40,6 +41,7 @@ struct FA_Graph{
 void regex_state_list_append(FA_StateListItem **list1, FA_StateListItem *list2);
 FA_StateListItem *regex_state_list_pop(FA_StateListItem **list);
 void regex_state_list_push(FA_StateListItem **list, FA_State * state);
+void regex_state_list_push_match(FA_StateListItem **list, FA_State * state, char * match_start);
 FA_State *regex_create_empty_FA_state(void);
 void regex_link_NFA_states(FA_State *A, FA_State *B, char condition);
 void regex_add_NFA_transition_to_list(FA_State *state, FA_TransitionListItem * transition);

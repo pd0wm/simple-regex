@@ -4,8 +4,8 @@
 #include <string.h>
 
 #include "regex.h"
-#include "dfa.h"
-#include "nfa.h"
+#include "regex-dfa.h"
+#include "regex-nfa.h"
 
 
 void regex_state_list_append(FA_StateListItem **list1, FA_StateListItem *list2){
@@ -41,10 +41,12 @@ FA_StateListItem *regex_state_list_pop(FA_StateListItem **list){
 
 	return item;
 }
-void regex_state_list_push(FA_StateListItem **list, FA_State *state){
+
+void regex_state_list_push_match(FA_StateListItem **list, FA_State * state, char * match_start){
 	FA_StateListItem *new_state = (FA_StateListItem *) malloc( sizeof(FA_StateListItem));
 	new_state->state = state;
 	new_state->next = NULL;
+	new_state->match_start = match_start;
 
 	// Check if list exists
 	if (*list == NULL){
@@ -57,6 +59,10 @@ void regex_state_list_push(FA_StateListItem **list, FA_State *state){
 		// Add item to list
 		item->next = new_state;
 	}
+
+}
+void regex_state_list_push(FA_StateListItem **list, FA_State *state){
+	regex_state_list_push_match(list, state, NULL);
 }
 
 FA_State *regex_create_empty_FA_state(void){
